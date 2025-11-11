@@ -64,13 +64,13 @@ function toggleConfirmPasswordVisibility() {
 }
 function termsHandleChange(event) {
   user.terms = event.target.checked
-  alert(event.target.checked)
+  //alert(event.target.checked)
 }
 
 function register(values) {
   formSent.value = true
   console.log(JSON.stringify(values, null, 2))
-  alert('Регистрация прошла успешно!')
+  //alert('Регистрация прошла успешно!')
 }
 </script>
 
