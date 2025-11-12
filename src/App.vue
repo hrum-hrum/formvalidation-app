@@ -1,17 +1,18 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Form, Field, ErrorMessage } from 'vee-validate'
 import * as yup from 'yup'
 
-const formSent = ref(false)
+const formSuccess = ref(false)
 
-const citySelectList = ref([
+//Незменяемые справочники не нужно делать реактивными
+const citySelectList = [
   { id: 'msc', text: 'Москва' },
   { id: 'spb', text: 'Санкт-Петербург' },
   { id: 'ovb', text: 'Новосибирск' },
   { id: 'svx', text: 'Екатеринбург' },
   { id: 'other', text: 'Другой' },
-])
+]
 
 const user = reactive({
   firstname: '',
@@ -28,8 +29,11 @@ const user = reactive({
   terms: false,
 })
 
-const phoneRegExp =
+const phoneRegExpCommon =
   /^(\+{0,})(\d{0,})([(]{1}\d{1,3}[)]{0,}){0,}(\s?\d+|\+\d{2,3}\s{1}\d+|\d+){1}[\s|-]?\d+([\s|-]?\d+){1,2}(\s){0,}$/gm
+
+const phoneRegExp = /^\+?\d{10,15}$/
+
 const userFormValidationSchema = yup.object({
   firstname: yup.string().required('* Это обязательное поле'),
   lastname: yup.string().required('* Это обязательное поле'),
@@ -37,10 +41,10 @@ const userFormValidationSchema = yup.object({
   city: yup.string().required('* Это обязательное поле'),
   phone: yup
     .string()
-    .matches(phoneRegExp, 'Введите правильный номер телефона')
-    .required('* Это обязательное поле'),
+    .required('* Это обязательное поле')
+    .matches(phoneRegExp, 'Введите правильный номер телефона'),
   email: yup.string().required('* Это обязательное поле').email('Введите правильный email'),
-  password: yup.string().min(6).required('* Это обязательное поле'),
+  password: yup.string().required('* Это обязательное поле').min(6, 'Не менее 6 символов'),
   'confirm-password': yup
     .string()
     .required('* Это обязательное поле')
@@ -52,23 +56,33 @@ const userFormValidationSchema = yup.object({
   //   }
   //   return 'Необходимо согласиться с условиями'
   // },
-  terms: yup.boolean().required('Необходимо согласиться с условиями'),
+  terms: yup.bool().required('Необходимо согласиться с условиями'),
   //.oneOf([true], 'Необходимо согласиться с условиями'),
 })
 
 function togglePasswordVisibility() {
   user.showPassword = !user.showPassword
 }
+
+//альтернативный способ
 function toggleConfirmPasswordVisibility() {
   user.showConfirmPassword = !user.showConfirmPassword
+
+  //Через ref недоступно, элемент Filed это сложный объект
+  // const confirmPasswordFileld = useTemplateRef('confirm-password')
+
+  //Через js
+  const confirmPasswordFileld = document.getElementById('confirm-password')
+  confirmPasswordFileld.type = confirmPasswordFileld.type === 'password' ? 'text' : 'password'
 }
+
 function termsHandleChange(event) {
+  alert(event.target.checked)
   user.terms = event.target.checked
-  //alert(event.target.checked)
 }
 
 function register(values) {
-  formSent.value = true
+  formSuccess.value = true
   console.log(JSON.stringify(values, null, 2))
   //alert('Регистрация прошла успешно!')
 }
@@ -78,7 +92,7 @@ function register(values) {
   <div class="container">
     <h1 class="title">Регистрация</h1>
     <Form
-      v-if="!formSent"
+      v-if="!formSuccess"
       class="registration-form"
       v-bind:validationSchema="userFormValidationSchema"
       @submit="register"
@@ -148,10 +162,10 @@ function register(values) {
       <div class="form-group form-group--password">
         <label class="form-label" for="password">Пароль *</label>
         <Field
+          id="password"
+          name="password"
           class="form-control"
           :type="user.showPassword ? 'text' : 'password'"
-          name="password"
-          id="password"
           v-model="user.password"
         />
         <button class="btn-icon btn-icon--password" type="button" @click="togglePasswordVisibility">
@@ -168,7 +182,7 @@ function register(values) {
         <label class="form-label" for="confirm-password">Подтвердите пароль *</label>
         <Field
           class="form-control"
-          :type="user.showConfirmPassword ? 'text' : 'password'"
+          type="password"
           name="confirm-password"
           id="confirm-password"
           v-model="user.confirmPassword"
@@ -195,18 +209,26 @@ function register(values) {
           id="comments"
           name="comments"
           v-model="user.comments"
-        ></Field>
+        />
         <ErrorMessage name="comments" class="message message--error" />
       </div>
       <div class="form-group form-group--full-width">
         <label class="form-label form-label--checkbox" for="terms">
-          <Field
+          <!-- <Field
             type="checkbox"
             id="terms"
             name="terms"
             :value="user.terms"
-            :checked="user.terms ? 'true' : 'false'"
+            :checked="user.terms"
             @change="termsHandleChange"
+          /> -->
+          <Field
+            type="checkbox"
+            id="terms"
+            name="terms"
+            v-model="user.terms"
+            :value="true"
+            :unchecked-value="false"
           />
           Я согласен c условиями пользования и политикой конфиденциальности
         </label>
